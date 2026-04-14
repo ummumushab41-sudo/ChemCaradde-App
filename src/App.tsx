@@ -150,13 +150,13 @@ export default function App() {
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === 'assistant') {
       const text = lastMessage.content.toLowerCase();
-      if (text.includes("progres: 14%") || text.includes("14%")) setProgress(14);
-      if (text.includes("progres: 28%") || text.includes("28%")) setProgress(28);
-      if (text.includes("progres: 42%") || text.includes("42%")) setProgress(42);
-      if (text.includes("progres: 56%") || text.includes("56%")) setProgress(56);
-      if (text.includes("progres: 70%") || text.includes("70%")) setProgress(70);
-      if (text.includes("progres: 84%") || text.includes("84%")) setProgress(84);
-      if (text.includes("progres: 100%") || text.includes("100%")) setProgress(100);
+      if (text.includes("progresmu sudah 14") || text.includes("14.3%")) setProgress(14.3);
+      if (text.includes("progresmu sudah 28") || text.includes("28.6%")) setProgress(28.6);
+      if (text.includes("progresmu sudah 42") || text.includes("42.9%")) setProgress(42.9);
+      if (text.includes("progresmu sudah 57") || text.includes("57.1%")) setProgress(57.1);
+      if (text.includes("progresmu sudah 71") || text.includes("71.4%")) setProgress(71.4);
+      if (text.includes("progresmu sudah 85") || text.includes("85.7%")) setProgress(85.7);
+      if (text.includes("progresmu sudah 100") || text.includes("100%")) setProgress(100);
     }
   }, [messages]);
 
@@ -169,7 +169,7 @@ export default function App() {
     try {
       const result = await ai.models.generateContentStream({
         model: "gemini-3-flash-preview",
-        contents: [{ role: "user", parts: [{ text: "Mulai aplikasi dengan menyapa sesuai [PROSEDUR IDENTITAS]." }] }],
+        contents: [{ role: "user", parts: [{ text: "Berikan salam pembuka yang hangat sebagai Ibu di aplikasi ChemCaradde. Sapa siswa dengan lembut, jelaskan tujuan aplikasi ini, dan tanyakan Nama, Kelas, serta Sekolah mereka sebagai syarat awal belajar." }] }],
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
         },
