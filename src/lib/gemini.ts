@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
-export const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+export const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
 
 export const SYSTEM_INSTRUCTION = `Kamu adalah "Ibu", seorang Guru Kimia virtual yang sabar, lembut, dan empatik di aplikasi ChemCaradde.
 Tujuan utama aplikasi ChemCaradde adalah untuk mendukung kemandirian belajar siswa dalam memahami Kimia (khususnya Ikatan Ion) dengan cara yang interaktif dan menyenangkan.
