@@ -151,17 +151,23 @@ export default function App() {
 
   useEffect(() => {
     scrollToBottom();
-    // Simple progress detection based on AI responses
+    // Refined progress detection based on AI responses
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === 'assistant') {
       const text = lastMessage.content.toLowerCase();
-      if (text.includes("progres: 14%") || text.includes("14%")) setProgress(14);
-      if (text.includes("progres: 28%") || text.includes("28%")) setProgress(28);
-      if (text.includes("progres: 42%") || text.includes("42%")) setProgress(42);
-      if (text.includes("progres: 56%") || text.includes("56%")) setProgress(56);
-      if (text.includes("progres: 70%") || text.includes("70%")) setProgress(70);
-      if (text.includes("progres: 84%") || text.includes("84%")) setProgress(84);
-      if (text.includes("progres: 100%") || text.includes("100%")) setProgress(100);
+      // Look for patterns like "progres: 14%" or "progresmu sudah 28.6%"
+      const progressMatch = text.match(/progres(?:mu)?(?:\s+sudah)?[:\s]+(\d+(?:\.\d+)?)\s*%/i);
+      
+      if (progressMatch) {
+        const value = parseFloat(progressMatch[1]);
+        // Only update if it's one of the expected milestones to avoid noise
+        const milestones = [14, 14.3, 28, 28.6, 42, 42.9, 56, 57.1, 70, 71.4, 84, 85.7, 100];
+        const isMilestone = milestones.some(m => Math.abs(m - value) < 0.5);
+        
+        if (isMilestone) {
+          setProgress(value);
+        }
+      }
     }
   }, [messages]);
 
@@ -210,13 +216,14 @@ export default function App() {
     }
   };
 
-  const handleSend = async () => {
-    if ((!input.trim() && !selectedImage) || isLoading || isSending.current) return;
+  const handleSend = async (overrideInput?: string, overrideImage?: string) => {
+    const currentInput = overrideInput !== undefined ? overrideInput : input;
+    const currentImage = overrideImage !== undefined ? overrideImage : selectedImage;
+
+    if ((!currentInput.trim() && !currentImage) || isLoading || isSending.current) return;
 
     isSending.current = true;
     setIsLoading(true);
-    const currentInput = input;
-    const currentImage = selectedImage;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -239,7 +246,7 @@ export default function App() {
       if (userMessage.image) {
         currentParts.push({
           inlineData: {
-            mimeType: "image/jpeg",
+            mimeType: "image/png",
             data: userMessage.image.split(',')[1],
           },
         });
@@ -374,10 +381,14 @@ export default function App() {
 
   const handleLewisSave = (data: string) => {
     setShowLewisCanvas(false);
-    setInput("Ibu, ini struktur Lewis yang aku buat di laboratorium interaktif.");
-    // In a real app we'd convert the canvas to an image, but for this demo 
-    // we'll just send the text and Ibu will respond.
-    handleSend();
+    const isImage = data.startsWith('data:image');
+    const messageContent = "Ibu, ini hasil praktikum saya di Laboratorium Lewis. Saya sudah menyusun atom dan elektronnya.";
+    
+    if (isImage) {
+      handleSend(messageContent, data);
+    } else {
+      handleSend(messageContent);
+    }
   };
 
   const handleSpeechToText = () => {

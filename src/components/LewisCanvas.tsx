@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, CheckCircle2, Info, AlertCircle, BookOpen } from 'lucide-react';
+import { X, Plus, Trash2, CheckCircle2, Info, AlertCircle, BookOpen, Camera } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 interface Atom {
   id: string;
@@ -33,8 +34,22 @@ export const LewisCanvas: React.FC<LewisCanvasProps> = ({ onClose, onSave }) => 
     const errors: string[] = [];
     atoms.forEach(atom => {
       const currentElectrons = electrons.filter(e => e.atomId === atom.id).length;
-      if (currentElectrons !== atom.valanceElectrons) {
-        errors.push(`Atom ${atom.symbol} harus memiliki ${atom.valanceElectrons} elektron valensi (saat ini: ${currentElectrons})`);
+      const charge = atom.valanceElectrons - currentElectrons;
+      
+      if (charge === 0) {
+        // Neutral state
+      } else if (charge > 0) {
+        if (currentElectrons === 0) {
+          // Stable cation
+        } else {
+          errors.push(`Atom ${atom.symbol} sedang melepaskan elektron (Muatan: +${charge})`);
+        }
+      } else {
+        if (currentElectrons === 8 || (atom.symbol === 'H' && currentElectrons === 2)) {
+          // Stable anion
+        } else {
+          errors.push(`Atom ${atom.symbol} sedang menangkap elektron (Muatan: ${charge})`);
+        }
       }
     });
     setValidationErrors(errors);
@@ -115,9 +130,23 @@ export const LewisCanvas: React.FC<LewisCanvasProps> = ({ onClose, onSave }) => 
   const handleCapture = async () => {
     if (!canvasRef.current) return;
     
-    // Simple way to "capture" is to use html2canvas if available, 
-    // but for now we'll just send a message that it's done
-    onSave("Canvas Lewis Structure"); 
+    try {
+      // Temporarily hide UI elements that shouldn't be in the screenshot
+      const canvas = await html2canvas(canvasRef.current, {
+        backgroundColor: '#fdfbf7',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        ignoreElements: (element) => {
+          return element.tagName === 'BUTTON' || element.classList.contains('no-capture');
+        }
+      });
+      const imageData = canvas.toDataURL('image/png');
+      onSave(imageData);
+    } catch (error) {
+      console.error("Capture error:", error);
+      onSave("Canvas Lewis Structure (Capture Failed)");
+    }
   };
 
   return (
@@ -234,14 +263,45 @@ export const LewisCanvas: React.FC<LewisCanvasProps> = ({ onClose, onSave }) => 
                 >
                   <div className={`relative w-16 h-16 flex items-center justify-center bg-warm-paper border-2 rounded-full shadow-lg group-hover:scale-110 transition-all ${
                     electrons.filter(e => e.atomId === atom.id).length !== atom.valanceElectrons 
-                      ? 'border-red-500 shadow-red-100' 
+                      ? 'border-blue-500 shadow-blue-100' 
                       : 'border-warm-accent'
                   }`}>
-                    <span className="serif text-xl font-bold text-warm-accent">{atom.symbol}</span>
+                    <span className="serif text-xl font-bold text-warm-accent">
+                      {atom.symbol}
+                      {(() => {
+                        const currentCount = electrons.filter(e => e.atomId === atom.id).length;
+                        const charge = atom.valanceElectrons - currentCount;
+                        if (charge === 0) return null;
+                        const chargeText = Math.abs(charge) === 1 
+                          ? (charge > 0 ? '+' : '-') 
+                          : `${Math.abs(charge)}${charge > 0 ? '+' : '-'}`;
+                        return <sup className="text-[10px] ml-0.5">{chargeText}</sup>;
+                      })()}
+                    </span>
+                    
+                    {/* Charge Indicator Badge (Floating) */}
+                    {(() => {
+                      const currentCount = electrons.filter(e => e.atomId === atom.id).length;
+                      const charge = atom.valanceElectrons - currentCount;
+                      if (charge === 0) return null;
+                      const chargeText = Math.abs(charge) === 1 
+                        ? (charge > 0 ? '+' : '-') 
+                        : `${Math.abs(charge)}${charge > 0 ? '+' : '-'}`;
+                      return (
+                        <motion.div 
+                          initial={{ scale: 0, y: 10 }}
+                          animate={{ scale: 1, y: 0 }}
+                          className={`absolute -top-4 -right-4 w-8 h-8 rounded-full flex flex-col items-center justify-center text-[10px] font-bold shadow-xl border-2 border-warm-paper z-20 ${charge > 0 ? 'bg-blue-600 text-white' : 'bg-red-600 text-white'}`}
+                        >
+                          <span>{chargeText}</span>
+                          <span className="text-[6px] uppercase leading-none">{charge > 0 ? 'ION+' : 'ION-'}</span>
+                        </motion.div>
+                      );
+                    })()}
                     
                     {/* Electrons around the atom */}
                     {electrons.filter(e => e.atomId === atom.id).map((electron, idx) => {
-                      const angle = (idx / atom.valanceElectrons) * 2 * Math.PI;
+                      const angle = (idx / electrons.filter(e => e.atomId === atom.id).length) * 2 * Math.PI;
                       const r = 35;
                       const ex = Math.cos(angle) * r;
                       const ey = Math.sin(angle) * r;
@@ -251,6 +311,25 @@ export const LewisCanvas: React.FC<LewisCanvasProps> = ({ onClose, onSave }) => 
                           key={electron.id}
                           drag
                           dragMomentum={false}
+                          onDragEnd={(e, info) => {
+                            const canvasRect = canvasRef.current?.getBoundingClientRect();
+                            if (!canvasRect) return;
+                            
+                            const dropX = info.point.x - canvasRect.left;
+                            const dropY = info.point.y - canvasRect.top;
+                            
+                            const targetAtom = atoms.find(a => {
+                              if (a.id === atom.id) return false;
+                              const dist = Math.sqrt(Math.pow(a.x + 32 - dropX, 2) + Math.pow(a.y + 32 - dropY, 2));
+                              return dist < 60;
+                            });
+
+                            if (targetAtom) {
+                              setElectrons(prev => prev.map(el => 
+                                el.id === electron.id ? { ...el, atomId: targetAtom.id } : el
+                              ));
+                            }
+                          }}
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", stiffness: 400, damping: 25 }}
