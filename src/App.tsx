@@ -243,14 +243,17 @@ export default function App() {
       }));
 
       const currentParts: any[] = [{ text: currentInput || "Lihat gambar ini, Ibu." }];
-      if (userMessage.image) {
-        currentParts.push({
-          inlineData: {
-            mimeType: "image/png",
-            data: userMessage.image.split(',')[1],
-          },
-        });
-      }
+    if (userMessage.image) {
+  const tipeMime = userMessage.image.split(';')[0].split(':')[1];
+  const dataBase64 = userMessage.image.split(',')[1];
+  
+  currentParts.push({
+    inlineData: {
+      mimeType: tipeMime,
+      data: dataBase64,
+    }
+  });
+}
 
       const result = await ai.models.generateContentStream({
         model: "gemini-2.5-flash",
