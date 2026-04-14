@@ -20,7 +20,7 @@ interface Message {
   content: string;
   image?: string;
 }
-let sudahMenyapa = false;
+
 export default function App() {
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem('chemcaradde_messages');
@@ -66,20 +66,19 @@ export default function App() {
     localStorage.setItem('chemcaradde_notifications', notificationsEnabled.toString());
   }, [notificationsEnabled]);
 
-// Initial Greeting & Notifications
-useEffect(() => {
-  if (messages.length === 0 && !sudahMenyapa) {
-    sudahMenyapa = true;
-    handleInitialGreeting();
-  }
-
-  // Check notification permission on mount
-  if ("Notification" in window) {
-    if (Notification.permission !== "granted" && notificationsEnabled) {
-      setNotificationsEnabled(false);
+  // Initial Greeting & Notifications
+  useEffect(() => {
+    if (messages.length === 0) {
+      handleInitialGreeting();
     }
-  }
-}, []);
+    
+    // Check notification permission on mount
+    if ("Notification" in window) {
+      if (Notification.permission !== "granted" && notificationsEnabled) {
+        setNotificationsEnabled(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -169,7 +168,7 @@ useEffect(() => {
     setIsLoading(true);
     try {
       const result = await ai.models.generateContentStream({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: [{ role: "user", parts: [{ text: "Mulai aplikasi dengan menyapa sesuai [PROSEDUR IDENTITAS]." }] }],
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
@@ -238,7 +237,7 @@ useEffect(() => {
       }
 
       const result = await ai.models.generateContentStream({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: [
           ...history, 
           { 
