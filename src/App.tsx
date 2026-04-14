@@ -66,12 +66,14 @@ export default function App() {
     localStorage.setItem('chemcaradde_notifications', notificationsEnabled.toString());
   }, [notificationsEnabled]);
 
-  // Initial Greeting & Notifications
+ // Initial Greeting & Notifications
+  const hasGreeted = useRef(false);
   useEffect(() => {
-    if (messages.length === 0) {
+    if (messages.length === 0 && !hasGreeted.current) {
       handleInitialGreeting();
+      hasGreeted.current = true;
     }
-    
+
     // Check notification permission on mount
     if ("Notification" in window) {
       if (Notification.permission !== "granted" && notificationsEnabled) {
