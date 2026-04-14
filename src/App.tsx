@@ -175,45 +175,16 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleInitialGreeting = async () => {
-    setIsLoading(true);
-    try {
-      const result = await ai.models.generateContentStream({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: "Mulai aplikasi dengan menyapa sesuai [PROSEDUR IDENTITAS]. Jelaskan sedikit tentang Chem Caradde dan tanyakan identitas siswa dengan hangat." }] }],
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-        },
-      });
-      
-      let assistantText = "";
-      const assistantMessageId = Date.now().toString();
-      setMessages([{ id: assistantMessageId, role: 'assistant', content: "" }]);
-
-      for await (const chunk of result) {
-        const chunkText = chunk.text;
-        assistantText += chunkText;
-        setMessages(prev => prev.map(msg => 
-          msg.id === assistantMessageId ? { ...msg, content: assistantText } : msg
-        ));
+const handleInitialGreeting = () => {
+    const pesanSapaan = "Halo Nak, Ibu senang bertemu kamu di Chem Caradde. Sebutkan nama, kelas, dan sekolahmu ya agar kita bisa mulai petualangan kimia kita!";
+    
+    setMessages([
+      { 
+        id: "pesan-awal-1", 
+        role: "assistant", 
+        content: pesanSapaan 
       }
-      
-      if (isAutoPlay) {
-        handleListen(assistantText);
-      }
-    } catch (error: any) {
-      console.error("Initial Greeting Error:", error);
-      let errorMessage = "Maaf Nak, sepertinya Ibu sedang ada kendala teknis. Bisa kita coba lagi?";
-      
-      const errorString = JSON.stringify(error).toUpperCase();
-      if (errorString.includes("429") || errorString.includes("QUOTA") || errorString.includes("EXHAUSTED") || error?.status === 429) {
-        errorMessage = "Aduh Nak, sepertinya Ibu sedang sangat sibuk melayani banyak siswa (Quota Terlampaui). Tunggu sebentar ya, nanti coba sapa Ibu lagi.";
-      }
-      
-      setMessages([{ id: Date.now().toString(), role: 'assistant', content: errorMessage }]);
-    } finally {
-      setIsLoading(false);
-    }
+    ]);
   };
 
   const handleSend = async (overrideInput?: string, overrideImage?: string) => {
