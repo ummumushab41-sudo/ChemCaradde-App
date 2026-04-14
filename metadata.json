@@ -1,0 +1,5 @@
+{
+  "name": "ChemCaradde",
+  "description": "Platform belajar Kimia mandiri yang interaktif dan empatik, fokus pada materi Ikatan Ion dengan fitur Laboratorium Lewis dan asisten virtual cerdas.",
+  "requestFramePermissions": ["camera", "microphone"]
+}
