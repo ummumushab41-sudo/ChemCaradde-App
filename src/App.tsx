@@ -13,6 +13,9 @@ import { CameraCapture } from './components/CameraCapture';
 
 import Markdown from 'react-markdown';
 
+// Global lock to prevent double greeting in React StrictMode (Dev)
+let initialGreetingLock = false;
+
 // Types
 interface Message {
   id: string;
@@ -52,6 +55,7 @@ export default function App() {
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSending = useRef(false);
 
   // Persistence Effects
   useEffect(() => {
@@ -68,7 +72,8 @@ export default function App() {
 
   // Initial Greeting & Notifications
   useEffect(() => {
-    if (messages.length === 0) {
+    if (messages.length === 0 && !initialGreetingLock) {
+      initialGreetingLock = true;
       handleInitialGreeting();
     }
     
@@ -78,7 +83,7 @@ export default function App() {
         setNotificationsEnabled(false);
       }
     }
-  }, []);
+  }, [messages.length]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -169,7 +174,7 @@ export default function App() {
     try {
       const result = await ai.models.generateContentStream({
         model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: "Mulai aplikasi dengan menyapa sesuai [PROSEDUR IDENTITAS]." }] }],
+        contents: [{ role: "user", parts: [{ text: "Mulai aplikasi dengan menyapa sesuai [PROSEDUR IDENTITAS]. Jelaskan sedikit tentang Chem Caradde dan tanyakan identitas siswa dengan hangat." }] }],
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
         },
@@ -206,19 +211,23 @@ export default function App() {
   };
 
   const handleSend = async () => {
-    if ((!input.trim() && !selectedImage) || isLoading) return;
+    if ((!input.trim() && !selectedImage) || isLoading || isSending.current) return;
+
+    isSending.current = true;
+    setIsLoading(true);
+    const currentInput = input;
+    const currentImage = selectedImage;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
-      image: selectedImage || undefined,
+      content: currentInput,
+      image: currentImage || undefined,
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setSelectedImage(null);
-    setIsLoading(true);
 
     try {
       const history = messages.map(msg => ({
@@ -226,7 +235,7 @@ export default function App() {
         parts: [{ text: msg.content }],
       }));
 
-      const currentParts: any[] = [{ text: input || "Lihat gambar ini, Ibu." }];
+      const currentParts: any[] = [{ text: currentInput || "Lihat gambar ini, Ibu." }];
       if (userMessage.image) {
         currentParts.push({
           inlineData: {
@@ -294,6 +303,7 @@ export default function App() {
       });
     } finally {
       setIsLoading(false);
+      isSending.current = false;
     }
   };
 
@@ -432,7 +442,7 @@ export default function App() {
     setProgress(0);
     setIsArchiving(false);
     setShowArchiveConfirm(false);
-    handleInitialGreeting();
+    initialGreetingLock = false;
   };
 
   return (
@@ -663,20 +673,23 @@ export default function App() {
                         />
                       )}
                       <div className={`leading-relaxed whitespace-pre-wrap ${msg.role === 'assistant' ? 'serif text-lg' : 'text-sm'}`}>
-                        {msg.content || (msg.role === 'assistant' && isLoading && <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1 }}>...</motion.span>)}
-                        <Markdown
-                          components={{
-                            img: ({ node, ...props }) => (
-                              <img 
-                                {...props} 
-                                className="max-w-full rounded-lg my-4 border border-warm-accent/10 shadow-sm" 
-                                referrerPolicy="no-referrer"
-                              />
-                            )
-                          }}
-                        >
-                          {msg.content}
-                        </Markdown>
+                        {!msg.content && msg.role === 'assistant' && isLoading ? (
+                          <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1 }}>...</motion.span>
+                        ) : (
+                          <Markdown
+                            components={{
+                              img: ({ node, ...props }) => (
+                                <img 
+                                  {...props} 
+                                  className="max-w-full rounded-lg my-4 border border-warm-accent/10 shadow-sm" 
+                                  referrerPolicy="no-referrer"
+                                />
+                              )
+                            }}
+                          >
+                            {msg.content}
+                          </Markdown>
+                        )}
                       </div>
                     </div>
                   </div>
